@@ -5,11 +5,7 @@ import com.kbulkup.user.domain.User;
 
 public interface TraineeAssetService {
 
-    TraineeAssetDetailResponseDTO getTraineeAsset(Long id);
-
-    void createUserPortfolio(String bank, String accountNumber, User user);
-
-    void updateUserPortfolio(User user);
+    TraineeAssetDetailResponseDTO getTraineeAsset(Long userId);
 
     TraineeAssetDetailResponseDTO findTraineeAssetDetailByRoomID(String roomId);
 }

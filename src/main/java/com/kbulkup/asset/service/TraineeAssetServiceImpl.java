@@ -1,25 +1,17 @@
 package com.kbulkup.asset.service;
 
+import com.kbulkup.asset.client.OpenBankingClient;
 import com.kbulkup.asset.domain.Composition;
 import com.kbulkup.asset.domain.Snapshot;
-import com.kbulkup.asset.domain.Transaction;
-import com.kbulkup.asset.dto.request.FintechAuthRequestDTO;
 import com.kbulkup.asset.dto.request.TokenRequestDTO;
-import com.kbulkup.asset.dto.response.ExternalAccessTokenResponseDTO;
-import com.kbulkup.asset.dto.response.ExternalAssetResponseDTO;
-import com.kbulkup.asset.dto.response.ExternalTokenResponseDTO;
-import com.kbulkup.asset.dto.response.TraineeAssetDetailResponseDTO;
+import com.kbulkup.asset.dto.response.*;
 import com.kbulkup.asset.mapper.TraineeAssetMapper;
 import com.kbulkup.common.security.JwtTokenProvider;
-import com.kbulkup.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,54 +19,28 @@ import java.util.List;
 public class TraineeAssetServiceImpl implements TraineeAssetService {
 
     private final TraineeAssetMapper traineeAssetMapper;
+    private final OpenBankingClient openBankingClient;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public TraineeAssetDetailResponseDTO getTraineeAsset(Long id) {
-        List<Transaction> transactions = traineeAssetMapper.getTransactionsByTraineeId(id);
+        //캐시 히트시 리턴
+
+        List<String> fintechUseNums = traineeAssetMapper.getFintechUseNumsByUserId(id);
+        List<TransactionListResponseDTO> transactions = new ArrayList<>();
+
+        String externalAccessToken = "test-auth-token-1234";  //redis에서 userId로부터 외부 서비스 토큰 꺼내기
+        for(String fintechUseNum : fintechUseNums){
+            List<TransactionListResponseDTO> externalTransactions = openBankingClient.getTransactions(fintechUseNum, externalAccessToken);
+            if (externalTransactions != null && !externalTransactions.isEmpty()) transactions.addAll(externalTransactions);
+        }
+
         List<Snapshot> snapshots = traineeAssetMapper.getSnapshotsByTraineeId(id);
-        Composition compositionsByTraineeId = traineeAssetMapper.getCompositionsByTraineeId(id);
+        Composition composition = traineeAssetMapper.getCompositionsByTraineeId(id);
 
-        return TraineeAssetDetailResponseDTO.toDTO(transactions, snapshots, compositionsByTraineeId);
-    }
+        //캐시에 저장
 
-    @Override
-    @Transactional
-    public void createUserPortfolio(String bank, String accountNumber, User user) {
-        ExternalTokenResponseDTO externalTokenResponseDTO = getAccessTokenAndFintechUseNum(bank, accountNumber);
-        traineeAssetMapper.insertFintechUseNum(user.getUserId(), bank, externalTokenResponseDTO.getFintechUseNum());
-        ExternalAssetResponseDTO externalAssetResponseDTO = getUserAssetData(externalTokenResponseDTO.getAccessToken(), externalTokenResponseDTO.getFintechUseNum());
-        traineeAssetMapper.insertPortfolio(user.getUserId());
-        insertTraineeAsset(user.getUserId(), externalAssetResponseDTO.getTraineeAssetDetailResponseDTO());
-        traineeAssetMapper.insertComposition(user.getUserId(), externalAssetResponseDTO.getTraineeAssetDetailResponseDTO().getComposition());
-    }
-
-    @Override
-    @Transactional
-    public void updateUserPortfolio(User user) {
-        FintechAuthRequestDTO fintechAuthRequestDTO = traineeAssetMapper.findBankAndFintechUseNum(user.getUserId());
-        ExternalAccessTokenResponseDTO externalAccessTokenResponseDTO = getAccessToken(fintechAuthRequestDTO.getFintechUseNum());
-        ExternalAssetResponseDTO externalAssetResponseDTO = getUserAssetData(externalAccessTokenResponseDTO.getAccessToken(), fintechAuthRequestDTO.getFintechUseNum());
-        deleteTraineeAsset(user.getUserId());
-        insertTraineeAsset(user.getUserId(), externalAssetResponseDTO.getTraineeAssetDetailResponseDTO());
-    }
-
-    @Transactional
-    public void deleteTraineeAsset(Long id) {
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusMonths(3).withDayOfMonth(1);
-
-        LocalDateTime startDateTime = start.atStartOfDay();
-        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
-
-        traineeAssetMapper.deleteTransactionsWindow(id, startDateTime, endDateTime);
-        traineeAssetMapper.deleteSnapshotsWindow(id, startDateTime, endDateTime);
-    }
-
-    @Transactional
-    public void insertTraineeAsset(Long id, TraineeAssetDetailResponseDTO dto) {
-        traineeAssetMapper.insertTransactions(id, dto.getTransactions());
-        traineeAssetMapper.insertSnapshots(id, dto.getSnapshots());
+        return TraineeAssetDetailResponseDTO.toDTO(transactions, snapshots, composition);
     }
 
     private ExternalTokenResponseDTO getAccessTokenAndFintechUseNum(String bank, String accountNumber) {

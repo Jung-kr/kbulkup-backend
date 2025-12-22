@@ -11,15 +11,19 @@ import lombok.*;
 @AllArgsConstructor
 public class TokenRequestDTO {
     @ApiModelProperty(value = "은행 코드/식별자")
-    private String bank;
+    private String bankCode;
 
     @ApiModelProperty(value = "계좌 번호")
-    private String accountNumber;
+    private String accountNum;
 
-    public static TokenRequestDTO create(String bank, String accountNumber) {
+    @ApiModelProperty(value = "사용자 이름")
+    private String accountHolderName;
+
+    public static TokenRequestDTO create(String bankCode, String accountNum, String accountHolderName) {
         return TokenRequestDTO.builder()
-                .bank(bank)
-                .accountNumber(accountNumber)
+                .bankCode(bankCode)
+                .accountNum(accountNum)
+                .accountHolderName(accountHolderName)
                 .build();
     }
 }

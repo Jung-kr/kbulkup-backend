@@ -1,6 +1,5 @@
 package com.kbulkup.asset.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,9 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExternalAssetResponseDTO {
+public class TraineeAccountResponseDTO {
     private String fintechUseNum;
-
-    @JsonProperty("portfolio")
-    private TraineeAssetDetailResponseDTO traineeAssetDetailResponseDTO;
+    private String bankName;
+    private String accountNumMasked;
 }

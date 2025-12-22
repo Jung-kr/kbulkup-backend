@@ -1,6 +1,7 @@
 package com.kbulkup.asset.controller;
 
 import com.kbulkup.asset.dto.request.TokenRequestDTO;
+import com.kbulkup.asset.dto.response.TraineeAccountResponseDTO;
 import com.kbulkup.asset.dto.response.TraineeAssetDetailResponseDTO;
 import com.kbulkup.asset.service.TraineeAssetService;
 import com.kbulkup.common.response.CustomResponse;
@@ -33,12 +34,11 @@ public class TraineeAssetController {
 
     @ApiOperation(value = "자산 계정 연결 생성", notes = "선택한 은행으로 포트폴리오 연동을 생성합니다.")
     @PostMapping("/account")
-    public CustomResponse<Void> postTraineeAccount(
+    public CustomResponse<TraineeAccountResponseDTO> postTraineeAccount(
             @ApiParam(value = "은행 식별 정보", required = true)
             @RequestBody TokenRequestDTO dto,
             @ApiIgnore @AuthenticationPrincipal(expression = "user") User user) {
-//        traineeAssetService.createUserPortfolio(dto.getBank(), dto.getAccountNumber(), user);
-        return CustomResponse.success(ResponseCode.SUCCESS);
+        return CustomResponse.success(ResponseCode.SUCCESS, traineeAssetService.createAccount(dto.getBankCode(), dto.getAccountNum(), dto.getAccountHolderName(), user.getUserId()));
     }
 
     @ApiOperation(value = "트레이너 공유용 수강생 자산 조회", notes = "상담/트레이닝 룸 ID로 수강생 자산 정보를 조회합니다.")

@@ -43,17 +43,17 @@ public class TraineeAssetServiceImpl implements TraineeAssetService {
         return TraineeAssetDetailResponseDTO.toDTO(transactions, snapshots, composition);
     }
 
-    private ExternalTokenResponseDTO getAccessTokenAndFintechUseNum(String bank, String accountNumber) {
-        WebClient webClient = WebClient
-                .builder()
-                .baseUrl("http://13.125.89.72:9080") //http://13.125.89.72:9080
-                .build();
-        return webClient.post()
-                .uri("/external-api/create-user")
-                .bodyValue(TokenRequestDTO.create(bank, accountNumber))
-                .retrieve()
-                .bodyToMono(ExternalTokenResponseDTO.class)
-                .block();
+    @Override
+    public TraineeAccountResponseDTO createAccount(String bank, String accountNumber, String accountHolderName, Long userId) {
+        String externalAccessToken = "test-auth-token-1234";  //redis에서 userId로부터 외부 서비스 토큰 꺼내기
+
+        return openBankingClient.createAccounts(bank, accountNumber, accountHolderName, externalAccessToken);
+    }
+
+    @Override
+    public TraineeAssetDetailResponseDTO findTraineeAssetDetailByRoomID(String roomId) {
+        Long userId = traineeAssetMapper.findUserIdByRoomID(roomId);
+        return getTraineeAsset(userId);
     }
 
     private ExternalAccessTokenResponseDTO getAccessToken(String fintechUseNum) {
@@ -71,7 +71,7 @@ public class TraineeAssetServiceImpl implements TraineeAssetService {
                 .block();
     }
 
-    private ExternalAssetResponseDTO getUserAssetData(String token, String fintechUseNum) {
+    private TraineeAccountResponseDTO getUserAssetData(String token, String fintechUseNum) {
         WebClient webClient = WebClient
                 .builder()
                 .baseUrl("http://13.125.89.72:9080") //http://13.125.89.72:9080
@@ -85,13 +85,7 @@ public class TraineeAssetServiceImpl implements TraineeAssetService {
                 )
                 .header("Authorization", "Bearer " + token)
                 .retrieve()
-                .bodyToMono(ExternalAssetResponseDTO.class)
+                .bodyToMono(TraineeAccountResponseDTO.class)
                 .block();
-    }
-
-    @Override
-    public TraineeAssetDetailResponseDTO findTraineeAssetDetailByRoomID(String roomId) {
-        Long userId = traineeAssetMapper.findUserIdByRoomID(roomId);
-        return getTraineeAsset(userId);
     }
 }

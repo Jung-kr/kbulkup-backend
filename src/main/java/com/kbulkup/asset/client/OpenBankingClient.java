@@ -1,5 +1,7 @@
 package com.kbulkup.asset.client;
 
+import com.kbulkup.asset.dto.request.TokenRequestDTO;
+import com.kbulkup.asset.dto.response.TraineeAccountResponseDTO;
 import com.kbulkup.asset.dto.response.TransactionListResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +32,21 @@ public class OpenBankingClient {
                 .retrieve()
                 .bodyToFlux(TransactionListResponseDTO.class)
                 .collectList()
+                .block();
+    }
+
+    public TraineeAccountResponseDTO createAccounts(String bankCode, String accountNum, String accountHolderName, String externalAccessToken) {
+        WebClient webClient = WebClient
+                .builder()
+                .baseUrl(baseUrl)
+                .build();
+
+        return webClient.post()
+                .uri("/external/accounts")
+                .bodyValue(TokenRequestDTO.create(bankCode, accountNum, accountHolderName))
+                .header("Authorization", externalAccessToken)
+                .retrieve()
+                .bodyToMono(TraineeAccountResponseDTO.class)
                 .block();
     }
 }

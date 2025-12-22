@@ -4,17 +4,6 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.kbulkup.asset.mapper.TraineeAssetMapper">
-    <select id="getTransactionsByTraineeId" resultType="com.kbulkup.asset.domain.Transaction">
-        SELECT transaction_id,
-               user_id,
-               transaction_type,
-               amount,
-               transaction_category,
-               tran_date
-        FROM transactions
-        WHERE user_id = #{traineeId}
-        ORDER BY tran_date DESC
-    </select>
 
     <select id="getSnapshotsByTraineeId" resultType="com.kbulkup.asset.domain.Snapshot">
         SELECT snapshot_id,
@@ -27,16 +16,13 @@
     </select>
 
     <resultMap id="CompositionResultMap" type="com.kbulkup.asset.domain.Composition">
-        <id property="compositionId" column="composition_id"/>
-        <result property="userId" column="user_id"/>
+        <id property="userId" column="user_id"/>
         <result property="assetComposition" column="asset_composition"
                 typeHandler="com.kbulkup.asset.typehandler.JsonToMapTypeHandler"/>
     </resultMap>
 
     <select id="getCompositionsByTraineeId" resultMap="CompositionResultMap">
-        SELECT composition_id,
-               user_id,
-               asset_composition
+        SELECT user_id, asset_composition
         FROM compositions
         WHERE user_id = #{traineeId}
     </select>
@@ -48,31 +34,6 @@
         fintech_use_num
         )
         VALUES (#{userId}, #{bank}, #{fintechUseNum})
-    </insert>
-
-    <insert id="insertPortfolio">
-        INSERT INTO portfolios (user_id)
-        VALUES (#{traineeId})
-    </insert>
-
-    <insert id="insertTransactions">
-        INSERT INTO transactions (
-        user_id,
-        transaction_type,
-        amount,
-        transaction_category,
-        tran_date
-        )
-        VALUES
-        <foreach collection="transactions" item="transaction" separator=",">
-            (
-            #{traineeId},
-            #{transaction.transactionType},
-            #{transaction.amount},
-            #{transaction.transactionCategory, typeHandler=com.kbulkup.asset.typehandler.TransactionCategoryTypeHandler},
-            #{transaction.tranDate}
-            )
-        </foreach>
     </insert>
 
     <insert id="insertSnapshots">
@@ -102,16 +63,9 @@
         SELECT user_id FROM counseling_reservations WHERE room_id = #{roomId}
     </select>
 
-    <select id="findBankAndFintechUseNum" resultType="com.kbulkup.asset.dto.request.FintechAuthRequestDTO">
+    <select id="getFintechUseNumsByUserId" resultType="String">
         SELECT fintech_use_num FROM user_fintech_auths WHERE user_id = #{userId}
     </select>
-
-    <delete id="deleteTransactionsWindow">
-        DELETE FROM transactions
-        WHERE user_id = #{userId}
-          AND tran_date BETWEEN #{startDate, jdbcType=TIMESTAMP}
-            AND #{endDate, jdbcType=TIMESTAMP}
-    </delete>
 
     <delete id="deleteSnapshotsWindow">
         DELETE FROM snapshots

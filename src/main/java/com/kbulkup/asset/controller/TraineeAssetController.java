@@ -37,16 +37,8 @@ public class TraineeAssetController {
             @ApiParam(value = "은행 식별 정보", required = true)
             @RequestBody TokenRequestDTO dto,
             @ApiIgnore @AuthenticationPrincipal(expression = "user") User user) {
-        traineeAssetService.createUserPortfolio(dto.getBank(), dto.getAccountNumber(), user);
+//        traineeAssetService.createUserPortfolio(dto.getBank(), dto.getAccountNumber(), user);
         return CustomResponse.success(ResponseCode.SUCCESS);
-    }
-
-    @ApiOperation(value = "자산 갱신 후 조회", notes = "외부 연동을 통해 포트폴리오를 갱신하고 최신 데이터를 반환합니다.")
-    @PutMapping
-    public CustomResponse<TraineeAssetDetailResponseDTO> updateAndGetTraineeAsset(
-            @ApiIgnore @AuthenticationPrincipal(expression = "user") User user) {
-        traineeAssetService.updateUserPortfolio(user);
-        return CustomResponse.success(ResponseCode.SUCCESS, traineeAssetService.getTraineeAsset(user.getUserId()));
     }
 
     @ApiOperation(value = "트레이너 공유용 수강생 자산 조회", notes = "상담/트레이닝 룸 ID로 수강생 자산 정보를 조회합니다.")

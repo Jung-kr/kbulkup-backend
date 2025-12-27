@@ -3,13 +3,11 @@ package com.kbulkup.asset.service;
 import com.kbulkup.asset.client.OpenBankingClient;
 import com.kbulkup.asset.domain.Composition;
 import com.kbulkup.asset.domain.Snapshot;
-import com.kbulkup.asset.dto.request.TokenRequestDTO;
+import com.kbulkup.asset.dto.cache.StaticAssetData;
 import com.kbulkup.asset.dto.response.*;
 import com.kbulkup.asset.mapper.TraineeAssetMapper;
-import com.kbulkup.common.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,29 +16,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TraineeAssetServiceImpl implements TraineeAssetService {
 
-    private final TraineeAssetMapper traineeAssetMapper;
     private final OpenBankingClient openBankingClient;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final TraineeAssetMapper traineeAssetMapper;
+    private final TraineeAssetCacheService cacheService;
 
     @Override
     public TraineeAssetDetailResponseDTO getTraineeAsset(Long id) {
-        //캐시 히트시 리턴
+        // 1. 캐시에서 정적 데이터 조회 -> 캐시 히트 시 바로 반환
+        StaticAssetData staticData = cacheService.getStaticData(id);
 
-        List<String> fintechUseNums = traineeAssetMapper.getFintechUseNumsByUserId(id);
-        List<TransactionListResponseDTO> transactions = new ArrayList<>();
+        // 2. 정적 데이터 캐시 미스 시 DB 조회 및 캐시 저장
+        if (staticData == null) {
+            List<Snapshot> snapshots = traineeAssetMapper.getSnapshotsByTraineeId(id);
+            Composition composition = traineeAssetMapper.getCompositionsByTraineeId(id);
 
-        String externalAccessToken = "test-auth-token-1234";  //redis에서 userId로부터 외부 서비스 토큰 꺼내기
-        for(String fintechUseNum : fintechUseNums){
-            List<TransactionListResponseDTO> externalTransactions = openBankingClient.getTransactions(fintechUseNum, externalAccessToken);
-            if (externalTransactions != null && !externalTransactions.isEmpty()) transactions.addAll(externalTransactions);
+            staticData = new StaticAssetData(snapshots, composition);
+            cacheService.saveStaticData(id, staticData);
         }
 
-        List<Snapshot> snapshots = traineeAssetMapper.getSnapshotsByTraineeId(id);
-        Composition composition = traineeAssetMapper.getCompositionsByTraineeId(id);
+        // 3. 캐시에서 거래내역 데이터 조회 -> 캐시 히트 시 바로 반환
+        List<TransactionListResponseDTO> transactions = cacheService.getTransactions(id);
 
-        //캐시에 저장
+        // 4. 거래 내역 데이터 캐시 미스 시 DB 조회 및 캐시 저장
+        if (transactions == null) {
+            transactions = fetchTransactionsFromExternalAPI(id);
+            cacheService.saveTransactions(id, transactions);
+        }
 
-        return TraineeAssetDetailResponseDTO.toDTO(transactions, snapshots, composition);
+        return TraineeAssetDetailResponseDTO.toDTO(transactions, staticData.getSnapshots(), staticData.getComposition());
     }
 
     @Override
@@ -56,36 +59,19 @@ public class TraineeAssetServiceImpl implements TraineeAssetService {
         return getTraineeAsset(userId);
     }
 
-    private ExternalAccessTokenResponseDTO getAccessToken(String fintechUseNum) {
-        WebClient webClient = WebClient
-                .builder()
-                .baseUrl("http://13.125.89.72:9080") //http://13.125.89.72:9080
-                .build();
-        return webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/external-api/token")
-                        .queryParam("fintechUseNum", fintechUseNum) // 쿼리 파라미터 추가
-                        .build())
-                .retrieve()
-                .bodyToMono(ExternalAccessTokenResponseDTO.class)
-                .block();
-    }
+    private List<TransactionListResponseDTO> fetchTransactionsFromExternalAPI(Long userId) {
+        List<TransactionListResponseDTO> transactions = new ArrayList<>();
+        List<String> fintechUseNums = traineeAssetMapper.getFintechUseNumsByUserId(userId);
 
-    private TraineeAccountResponseDTO getUserAssetData(String token, String fintechUseNum) {
-        WebClient webClient = WebClient
-                .builder()
-                .baseUrl("http://13.125.89.72:9080") //http://13.125.89.72:9080
-                .build();
+        String externalAccessToken = "test-auth-token-1234";  //redis에서 userId로부터 외부 서비스 토큰 꺼내기
+        for (String fintechUseNum : fintechUseNums) {
+            List<TransactionListResponseDTO> externalTransactions = openBankingClient.getTransactions(fintechUseNum, externalAccessToken);
 
-        return webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/external-api/user-data")
-                        .queryParam("fintechUseNum", fintechUseNum)
-                        .build()
-                )
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .bodyToMono(TraineeAccountResponseDTO.class)
-                .block();
+            if (externalTransactions != null && !externalTransactions.isEmpty()) {
+                transactions.addAll(externalTransactions);
+            }
+        }
+
+        return transactions;
     }
 }

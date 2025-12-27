@@ -25,7 +25,7 @@ public class OpenBankingClient {
 
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/external/transactions")
+                        .path("/external/transactions/asset")
                         .queryParam("fintech_use_num", fintechUseNum)
                         .build())
                 .header("Authorization", externalAccessToken)

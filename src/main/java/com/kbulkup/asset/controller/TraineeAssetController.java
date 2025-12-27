@@ -32,6 +32,17 @@ public class TraineeAssetController {
         return CustomResponse.success(ResponseCode.SUCCESS, dto);
     }
 
+    @ApiOperation(value = "거래 내역 조회", notes = "로그인한 수강생의 거래내역울 조회합니다.")
+    @GetMapping("/transaction")
+    public CustomResponse<TraineeAssetDetailResponseDTO> getTraineeTransaction(
+            @ApiIgnore @AuthenticationPrincipal(expression = "user") User user) {
+        TraineeAssetDetailResponseDTO dto = traineeAssetService.getTraineeAsset(user.getUserId());
+        if (dto.getTransactions().isEmpty() && dto.getSnapshots().isEmpty() && dto.getComposition() == null) {
+            return CustomResponse.success(ResponseCode.SUCCESS);
+        }
+        return CustomResponse.success(ResponseCode.SUCCESS, dto);
+    }
+
     @ApiOperation(value = "자산 계정 연결 생성", notes = "선택한 은행으로 포트폴리오 연동을 생성합니다.")
     @PostMapping("/account")
     public CustomResponse<TraineeAccountResponseDTO> postTraineeAccount(

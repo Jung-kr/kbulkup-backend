@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
 import java.util.Optional;
 
 @Mapper
@@ -21,6 +22,8 @@ public interface UserMapper {
 
     // 사용자 ID로 사용자 조회 (AuthServiceImpl에서 필요)
     Optional<User> findById(Long userId);
+
+    List<Long> getTraineeIds();
 
     // 신규 사용자 정보 저장
     void saveUser(User user);

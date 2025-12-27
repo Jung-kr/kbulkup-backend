@@ -114,6 +114,15 @@
         )
     </select>
 
+    <select id="getTraineeIds" resultType="java.lang.Long">
+        SELECT DISTINCT u.user_id
+        FROM users u
+            INNER JOIN user_roles ur ON u.user_id = ur.user_id
+            INNER JOIN roles r ON ur.role_id = r.role_id
+        WHERE r.role = 'TRAINEE'
+        ORDER BY u.user_id
+    </select>
+
     <update id="updateUserProviderId">
         UPDATE users
         SET provider_id = #{providerId}

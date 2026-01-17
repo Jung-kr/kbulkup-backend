@@ -94,25 +94,33 @@
     <select id="findAllApprovedTrainings"
             resultType="com.kbulkup.training.dto.response.TraineeTrainingListResponseDTO">
         SELECT t.training_id AS trainingId,
-        t.title,
-        u.username AS trainerName,
-        t.average_rating AS averageRating,
-        (SELECT COUNT(DISTINCT e2.user_id)
-        FROM enrollments e2
-        WHERE e2.training_id = t.training_id) AS traineeCount,
-        t.price,
-        t.thumbnail_url AS thumbnailUrl,
-        t.level,
-        t.category,
-        CASE WHEN EXISTS (
-        SELECT 1 FROM enrollments e3
-        WHERE e3.training_id = t.training_id
-        AND e3.user_id     = #{userId}
-        ) THEN TRUE ELSE FALSE END AS purchased
+            t.title,
+            u.username AS trainerName,
+            t.average_rating AS averageRating,
+            t.trainee_count AS traineeCount,
+            t.price,
+            t.thumbnail_url AS thumbnailUrl,
+            t.level,
+            t.category,
+            CASE WHEN EXISTS (
+                SELECT 1 FROM enrollments e
+                WHERE e.training_id = t.training_id
+                    AND e.user_id = #{userId}
+            ) THEN TRUE ELSE FALSE END AS purchased
         FROM trainings t
-                 JOIN users u ON t.trainer_id = u.user_id
+        JOIN users u ON t.trainer_id = u.user_id
         WHERE t.approval_status = '승인'
-        ORDER BY t.created_at DESC
+        <if test="cursorCreatedAt != null and cursorId != null">
+            AND (
+                t.created_at <![CDATA[<]]> #{cursorCreatedAt}
+                OR (
+                    t.created_at = #{cursorCreatedAt}
+                    AND t.training_id <![CDATA[<]]> #{cursorId}
+                )
+            )
+        </if>
+        ORDER BY t.created_at DESC, t.training_id DESC
+        LIMIT 10
     </select>
 
 

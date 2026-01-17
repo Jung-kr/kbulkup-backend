@@ -19,6 +19,7 @@ import com.kbulkup.training.service.TrainerTrainingService;
 import com.kbulkup.user.domain.User;
 import io.swagger.annotations.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.ApiIgnore;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -105,8 +107,11 @@ public class CommonTrainingController {
     @ApiOperation(value = "승인된 트레이닝 전체 목록(수강생)")
     @GetMapping("/trainee/trainings/training")
     public CustomResponse<List<com.kbulkup.training.dto.response.TraineeTrainingListResponseDTO>> getAllTrainings(
-            @ApiIgnore @AuthenticationPrincipal(expression = "user") User user) {
-        return CustomResponse.success(ResponseCode.SUCCESS, traineeTrainingService.getAllApprovedTrainings(user.getUserId()));
+            @ApiIgnore @AuthenticationPrincipal(expression = "user") User user,
+            @RequestParam(required = false) LocalDateTime cursorCreatedAt,
+            @RequestParam(required = false) Long cursorId
+    ) {
+        return CustomResponse.success(ResponseCode.SUCCESS, traineeTrainingService.getAllApprovedTrainings(user.getUserId(), cursorCreatedAt, cursorId));
     }
 
     /** [수강생] 트레이닝 리뷰 조회 */

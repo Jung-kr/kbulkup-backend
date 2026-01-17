@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,8 +79,8 @@ public class TraineeTrainingService {
         return traineeTrainingMapper.findTrainingDetail(request.getTrainingId());
     }
 
-    public List<TraineeTrainingListResponseDTO> getAllApprovedTrainings(Long userId) {
-        return traineeTrainingMapper.findAllApprovedTrainings(userId);
+    public List<TraineeTrainingListResponseDTO> getAllApprovedTrainings(Long userId, LocalDateTime cursorCreatedAt, Long cursorId) {
+        return traineeTrainingMapper.findAllApprovedTrainings(userId, cursorCreatedAt, cursorId);
     }
 
     public TraineeTrainingReviewResponseDTO getTrainingTitle(Long trainingId) {

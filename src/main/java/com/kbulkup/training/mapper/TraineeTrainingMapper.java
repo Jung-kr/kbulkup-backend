@@ -7,6 +7,8 @@ import com.kbulkup.training.dto.response.TraineeTrainingListResponseDTO;
 import com.kbulkup.training.dto.response.TraineeTrainingReviewResponseDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -31,7 +33,11 @@ public interface TraineeTrainingMapper {
 
     boolean isTrainingPurchased(@Param("trainingId") Long trainingId, @Param("userId") Long userId);
 
-    List<TraineeTrainingListResponseDTO> findAllApprovedTrainings(@Param("userId") Long userId);
+    List<TraineeTrainingListResponseDTO> findAllApprovedTrainings(
+            @Param("userId") Long userId,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Long cursorId
+    );
 
     /**  결제 전 트레이닝 상세 조회 (루틴 총점수 포함) */
     TraineeTrainingDetailResponseDTO findTrainingDetail(@Param("trainingId") Long trainingId);

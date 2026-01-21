@@ -3,6 +3,7 @@ package com.kbulkup.chat.domain;
 import com.kbulkup.chat.dto.ChatMessageDTO;
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "chat_messages")
+@CompoundIndex(def = "{'roomId': 1, 'receiverId': 1, 'isRead': 1}")
 public class MongoChatMessage {
 
     @Id

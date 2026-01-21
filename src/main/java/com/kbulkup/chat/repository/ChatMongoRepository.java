@@ -6,6 +6,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,8 +21,14 @@ public class ChatMongoRepository {
         mongoTemplate.save(mongoChatMessage);
     }
 
-    public void saveAll(List<MongoChatMessage> mongoChatMessages) {
-        mongoChatMessages.forEach(this::save);
+    public void saveAll(String roomId, String userId) {
+
+        Query query = new Query(Criteria.where("roomId").is(roomId)
+                .and("receiverId").is(userId)
+                .and("isRead").is(false));
+
+        Update update = new Update().set("isRead", true);
+        mongoTemplate.updateMulti(query, update, MongoChatMessage.class);
     }
 
     public List<MongoChatMessage> findByRoomId(String roomId) {

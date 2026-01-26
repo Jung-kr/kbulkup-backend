@@ -22,9 +22,9 @@ public class ChatController {
     @MessageMapping("/chat/send-message")
     public void sendMessage(ChatMessageDTO chatMessageDTO) {
         chatMessageDTO.setSendAt(LocalDateTime.now());
-        var chatSummary = chatService.saveChatMessage(chatMessageDTO);
-        if (chatSummary == null) return;
+        String receiverId = chatService.validateReservation(chatMessageDTO);
         messagingTemplate.convertAndSend("/topic/room/" + chatMessageDTO.getRoomId(), chatMessageDTO);
-        messagingTemplate.convertAndSend("/queue/user/" + chatSummary.getReceiverId(), chatSummary);
+
+        chatService.saveChatMessage(chatMessageDTO, receiverId);
     }
 }

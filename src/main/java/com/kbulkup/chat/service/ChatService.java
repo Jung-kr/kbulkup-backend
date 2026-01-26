@@ -8,7 +8,9 @@ import java.util.List;
 
 public interface ChatService {
 
-    ChatSummaryDTO saveChatMessage(ChatMessageDTO chatMessageDTO);
+    void saveChatMessage(ChatMessageDTO chatMessageDTO, String receiverId);
+
+    String validateReservation(ChatMessageDTO chatMessageDTO);
 
     List<MongoChatMessage> getMessagesByRoomId(String roomId, String userId);
 

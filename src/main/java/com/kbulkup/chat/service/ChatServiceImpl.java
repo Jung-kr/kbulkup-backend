@@ -9,23 +9,48 @@ import com.kbulkup.common.response.ResponseCode;
 import com.kbulkup.counseling.domain.CounselingReservation;
 import com.kbulkup.counseling.domain.ReservationStatus;
 import com.kbulkup.counseling.mapper.CounselingReservationMapper;
+import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
+    private final ChatRetryService chatRetryService;
     private final ChatMongoRepository chatMongoRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     private final CounselingReservationMapper counselingReservationMapper;
 
     @Override
-    @Transactional
-    public ChatSummaryDTO saveChatMessage(ChatMessageDTO dto) {
+    @Async("chatExecutor")
+    public void saveChatMessage(ChatMessageDTO dto, String receiverId) {
+        // 1. MongoDB 채팅 내역 저장
+        chatRetryService.saveChatHistory(dto, receiverId);
 
+        // 2. MySQL 마지막 채팅, 시간 업데이트
+        counselingReservationMapper.updateLatestMessage(dto.getRoomId(), dto.getMessage(), dto.getSendAt());
+        log.debug("최근 메시지 업데이트 완료 - roomId: {}", dto.getRoomId());
+
+        // 3. MongoDB 안읽은 메시지 수 카운트 하고 ChatSummary 전송
+        int unreadCount = (int) chatMongoRepository.countUnreadMessages(dto.getRoomId(), receiverId);
+        ChatSummaryDTO chatSummary = ChatSummaryDTO.create(dto, unreadCount, receiverId);
+        messagingTemplate.convertAndSend("/queue/user/" + chatSummary.getReceiverId(), chatSummary);
+        log.debug("ChatSummary 전송 완료 - receiverId: {}", receiverId);
+    }
+
+    @Override
+    public String validateReservation(ChatMessageDTO dto) {
         CounselingReservation reservation = counselingReservationMapper.findByRoomId(dto.getRoomId());
 
         // 예약 상태가 ACTIVE인지 확인
@@ -33,19 +58,8 @@ public class ChatServiceImpl implements ChatService {
             throw new CounselingException(ResponseCode.CHAT_NOT_AVAILABLE);
         }
 
-        String receiverId = dto.getSenderId().equals(reservation.getTraineeId().toString())
+        return dto.getSenderId().equals(reservation.getTraineeId().toString())
                 ? reservation.getTrainerId().toString() : reservation.getTraineeId().toString();
-
-        //mongodb 채팅 내역 저장
-        MongoChatMessage document = MongoChatMessage.create(dto, receiverId);
-        chatMongoRepository.save(document);
-
-        //mysql 마지막 채팅 시간, 마지막 채팅 업데이트
-        counselingReservationMapper.updateLatestMessage(dto.getRoomId(), dto.getMessage(), dto.getSendAt());
-
-        //채팅방 요약 정보 전송 위함
-        int unreadCount = (int) chatMongoRepository.countUnreadMessages(dto.getRoomId(), receiverId);
-        return ChatSummaryDTO.create(dto, unreadCount, receiverId);
     }
 
     @Override

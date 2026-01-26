@@ -110,6 +110,15 @@ dependencies {
     // Swagger 관련 의존성
     implementation 'io.springfox:springfox-swagger2:2.9.2'       // Swagger 핵심 라이브러리
     implementation 'io.springfox:springfox-swagger-ui:2.9.2'     // Swagger UI 웹 인터페이스
+
+    // Spring Retry (Spring 5.3.30과 호환)
+    implementation 'org.springframework.retry:spring-retry:1.3.4'
+
+    // AOP
+    implementation 'org.springframework:spring-aop:5.3.30'
+
+    // AspectJ (AOP 처리를 위해 필수)
+    implementation 'org.aspectj:aspectjweaver:1.9.19'
 }
 
 // WAR 파일 이름 설정 (선택 사항)

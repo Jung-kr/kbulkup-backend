@@ -43,7 +43,6 @@ public class WebSocketAuthenticationInterceptor implements ChannelInterceptor {
                 }
 
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
                 accessor.setUser(authentication);
 
                 log.info("WebSocket 연결 성공: 사용자 {}", authentication.getName());

@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 public class ChatMessageDTO {
 
     private String roomId;
-    private String senderId;
     private String message;
+
+    @Setter
+    private String senderId;
 
     @Setter
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
